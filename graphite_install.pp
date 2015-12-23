@@ -1,78 +1,22 @@
-# 
-package { 'graphite-web':
-  ensure => present,
+
+# Install the Graphite Puppet module.
+exec { 'install_graphite_modul':
+  command => 'puppet module install dwerder-graphite',
+  creates => '/etc/puppet/modules/graphite',
+  path    => '/usr/bin',
 }
 
-package { 'python-carbon':
-  ensure => present,
-}
-
-package { 'python-whisper':
-  ensure => present,
-}
-
-
-## /usr/lib/python2.7/site-packages/graphite/settings.py
-
-# This is the file that should be edited.
-# /etc/graphite-web/local_settings.py
-$szGraphiteLocalSettingFile = '/etc/graphite-web/local_settings.py'
-
-#SECRET_KEY = 'UNSAFE_DEFAULT'
-file_line { 'local_settings_secret_key':
-  ensure => present,
-  line   => "SECRET_KEY = 'WhatIsThisSecretKeyUsedFor'",
-  path   => "$szGraphiteLocalSettingFile",
-  require => Package [ 'graphite-web' ],
+# Install the apache module.
+exec { 'install_apache_modul':
+  command => 'puppet module install puppetlabs-apache',
+  creates => '/etc/puppet/modules/apache',
+  path    => '/usr/bin',
 }
 
 
-#EMAIL_HOST_USER = ''
-file_line { 'local_settings_email_host_user':
-  ensure => present,
-  line   => "EMAIL_HOST_USER = 'root'",
-  path   => "$szGraphiteLocalSettingFile",
-  require => Package [ 'graphite-web' ],
-}
-
-#EMAIL_HOST_PASSWORD = ''
-file_line { 'local_settings_email_host_password':
-  ensure => present,
-  line   => "EMAIL_HOST_PASSWORD = 'SuperSecret'",
-  path   => "$szGraphiteLocalSettingFile",
-  require => Package [ 'graphite-web' ],
-}
-
-
-
-
-
-
-# See also: https://github.com/miguno/puppet-graphite/blob/master/manifests/web/install.pp
-# sudo python /usr/lib/python2.7/site-packages/graphite/manage.py syncdb
-# sudo chown apache:apache /var/lib/graphite-web/graphite.db
-
-service { 'carbon-aggregator':
-  ensure => running,
-  enable => true,
-  require => Package [ 'python-carbon' ],
-}
-
-service { 'carbon-cache':
-  ensure => running,
-  enable => true,
-  require => Package [ 'python-carbon' ],
-}
-
-file { '/etc/httpd/conf.d/graphite-web.conf':
-  ensure => present,
-  source => '/vagrant/graphite-web.conf',
-  require => Package [ 'graphite-web' ],
-  notify  => Service [ 'httpd' ],
-}
-
-
-service { 'httpd':
-  ensure => running,
-  enable => true,
+class { 'graphite':
+  gr_max_updates_per_second => 100,
+  gr_timezone               => 'Europe/Berlin',
+  secret_key                => 'CHANGE_IT!',
+  require    => Exec['install_apache_modul','install_graphite_modul'],
 }
