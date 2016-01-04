@@ -45,6 +45,11 @@ file_line { 'local_settings_email_host_password':
 
 
 
+file { '/etc/carbon/storage-schemas.conf':
+  ensure => present,
+  content => "# from henk52-graphite.\n[performance_date]\npattern=.*\nretentions = 5s:7d,1m:30d,15m:1y",
+  require => Package[ 'python-carbon' ],
+}
 
 
 
@@ -55,13 +60,15 @@ file_line { 'local_settings_email_host_password':
 service { 'carbon-aggregator':
   ensure => running,
   enable => true,
-  require => Package[ 'python-carbon' ],
+  require => File['/etc/carbon/storage-schemas.conf'],
+#  require => Package[ 'python-carbon' ],
 }
 
 service { 'carbon-cache':
   ensure => running,
   enable => true,
-  require => Package[ 'python-carbon' ],
+  require => File['/etc/carbon/storage-schemas.conf'],
+#  require => Package[ 'python-carbon' ],
 }
 
 file { '/etc/httpd/conf.d/graphite-web.conf':
