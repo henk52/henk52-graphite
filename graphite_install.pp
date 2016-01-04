@@ -71,8 +71,14 @@ file { '/etc/httpd/conf.d/graphite-web.conf':
   notify  => Service[ 'httpd' ],
 }
 
+exec { 'sync_django_db':
+  command => 'python /usr/lib/python2.7/site-packages/graphite/manage.py syncdb --noinput',
+  path    => '/usr/bin',  
+  require => File_line['local_settings_secret_key','local_settings_email_host_user','local_settings_email_host_password'],
+}
 
 service { 'httpd':
   ensure => running,
   enable => true,
+  require => Exec['sync_django_db'],
 }
