@@ -1,0 +1,19 @@
+[Mon Jan 04 14:07:06.532777 2016] [wsgi:error] [pid 2061]     return Database.Cursor.execute(self, query, params)
+[Mon Jan 04 14:07:06.532804 2016] [wsgi:error] [pid 2061] IntegrityError: UNIQUE constraint failed: auth_user.username
+
+
+[Mon Jan 04 14:17:11.501967 2016] [wsgi:error] [pid 2029]     searcher = IndexSearcher(settings.INDEX_FILE)
+[Mon Jan 04 14:17:11.502039 2016] [wsgi:error] [pid 2029]   File "/usr/lib/python2.7/site-packages/graphite/metrics/search.py", line 17, in __init__
+[Mon Jan 04 14:17:11.502098 2016] [wsgi:error] [pid 2029]     retcode = subprocess.call(build_index_path)
+[Mon Jan 04 14:17:11.502125 2016] [wsgi:error] [pid 2029]   File "/usr/lib/python2.7/subprocess.py", line 522, in call
+[Mon Jan 04 14:17:11.503708 2016] [wsgi:error] [pid 2029]     return Popen(*popenargs, **kwargs).wait()
+[Mon Jan 04 14:17:11.503748 2016] [wsgi:error] [pid 2029]   File "/usr/lib/python2.7/subprocess.py", line 710, in __init__
+[Mon Jan 04 14:17:11.503800 2016] [wsgi:error] [pid 2029]     errread, errwrite)
+[Mon Jan 04 14:17:11.503824 2016] [wsgi:error] [pid 2029]   File "/usr/lib/python2.7/subprocess.py", line 1335, in _execute_child
+[Mon Jan 04 14:17:11.503860 2016] [wsgi:error] [pid 2029]     raise child_exception
+[Mon Jan 04 14:17:11.503908 2016] [wsgi:error] [pid 2029] OSError: [Errno 2] No such file or directory
+[
+
+
+
+ IntegrityError: UNIQUE constraint failed: auth_user.username

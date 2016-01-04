@@ -71,14 +71,33 @@ file { '/etc/httpd/conf.d/graphite-web.conf':
   notify  => Service[ 'httpd' ],
 }
 
+# /var/lib/graphite-web/graphite.db
 exec { 'sync_django_db':
   command => 'python /usr/lib/python2.7/site-packages/graphite/manage.py syncdb --noinput',
   path    => '/usr/bin',  
-  require => File_line['local_settings_secret_key','local_settings_email_host_user','local_settings_email_host_password'],
+  creates => '/var/lib/graphite-web/graphite.db',
+  user    => 'apache',
+  require => [ 
+               File_line['local_settings_secret_key','local_settings_email_host_user','local_settings_email_host_password'],
+               Package['graphite-web'],
+               Service['carbon-cache','carbon-aggregator'],
+             ],
 }
 
+#file { '/var/lib/graphite-web/index':
+
+# TODO figure out what this acutally creates, because running this(even when it fails, then it mean it works.
+#exec { 'some_run':
+#  command => 'python /usr/share/graphite/graphite-web.wsgi',
+#  path    => '/usr/bin',  
+#  user    => 'apache',
+#  require => Exec['sync_django_db'], 
+#}
+
+#
 service { 'httpd':
   ensure => running,
   enable => true,
   require => Exec['sync_django_db'],
+#  require => [ Exec['sync_django_db'], File['/var/lib/graphite-web/index'] ],
 }
