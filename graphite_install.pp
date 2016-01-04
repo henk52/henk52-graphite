@@ -1,77 +1,78 @@
-
-# Install the Graphite Puppet module.
-#exec { 'install_graphite_modul':
-#  command => 'puppet module install dwerder-graphite',
-#  creates => '/etc/puppet/modules/graphite',
-#  path    => '/usr/bin',
-#}
-exec { 'get_graphite_modul':
-  command => 'wget http://dm/storage/puppet/dwerder-graphite-5.15.0.tar.gz',
-  cwd     => '/etc/puppet/modules',
-  creates => '/etc/puppet/modules/dwerder-graphite-5.15.0.tar.gz',
-  path    => '/usr/bin',
+# 
+package { 'graphite-web':
+  ensure => present,
 }
 
-exec { 'unpack_graphite_modul':
-  command => 'tar -zxf dwerder-graphite-5.15.0.tar.gz',
-  cwd     => '/etc/puppet/modules',
-  creates => '/etc/puppet/modules/dwerder-graphite-5.15.0',
-  path    => '/usr/bin',
-  require => Exec['get_graphite_modul'],
+package { 'python-carbon':
+  ensure => present,
 }
 
-file { '/etc/puppet/modules/graphite':
-  ensure  => link,
-  target  => '/etc/puppet/modules/dwerder-graphite-5.15.0',
-  require => Exec['unpack_graphite_modul'],
+package { 'python-whisper':
+  ensure => present,
 }
 
-$szApacheTarName = "puppetlabs-apache-1.7.1.tar.gz"
-$szApacheDirName = "puppetlabs-apache-1.7.1"
-exec { 'get_apache_module':
-  command => "wget http://dm/storage/puppet/$szApacheTarName",
-  cwd     => '/etc/puppet/modules',
-  creates => "/etc/puppet/modules/$szApacheTarName",
-  path    => '/usr/bin',
+
+## /usr/lib/python2.7/site-packages/graphite/settings.py
+
+# This is the file that should be edited.
+# /etc/graphite-web/local_settings.py
+$szGraphiteLocalSettingFile = '/etc/graphite-web/local_settings.py'
+
+#SECRET_KEY = 'UNSAFE_DEFAULT'
+file_line { 'local_settings_secret_key':
+  ensure => present,
+  line   => "SECRET_KEY = 'WhatIsThisSecretKeyUsedFor'",
+  path   => "$szGraphiteLocalSettingFile",
+  require => Package[ 'graphite-web' ],
 }
 
-exec { 'unpack_apache_module':
-  command => "tar -zxf $szApacheTarName",
-  cwd     => '/etc/puppet/modules',
-  creates => "/etc/puppet/modules/$szApacheDirName",
-  path    => '/usr/bin',
-  require => Exec['get_apache_module'],
+
+#EMAIL_HOST_USER = ''
+file_line { 'local_settings_email_host_user':
+  ensure => present,
+  line   => "EMAIL_HOST_USER = 'root'",
+  path   => "$szGraphiteLocalSettingFile",
+  require => Package[ 'graphite-web' ],
 }
 
-file { '/etc/puppet/modules/apache':
-  ensure  => link,
-  target  => "/etc/puppet/modules/$szApacheDirName",
-  require => Exec['unpack_apache_module'],
-}
-
-$szConcatDirName = 'puppetlabs-concat-1.2.5'
-$szConcatTarName = "$szConcatDirName.tar.gz"
-
-exec { 'get_concat_module':
-  command => "wget http://dm/storage/puppet/$szConcatTarName",
-  cwd     => '/etc/puppet/modules',
-  creates => "/etc/puppet/modules/$szConcatTarName",
-  path    => '/usr/bin',
-}
-
-exec { 'unpack_concat_module':
-  command => "tar -zxf $szConcatTarName",
-  cwd     => '/etc/puppet/modules',
-  creates => "/etc/puppet/modules/$szConcatDirName",
-  path    => '/usr/bin',
-  require => Exec['get_concat_module'],
-}
-
-file { '/etc/puppet/modules/concat':
-  ensure  => link,
-  target  => "/etc/puppet/modules/$szConcatDirName",
-  require => Exec['unpack_concat_module'],
+#EMAIL_HOST_PASSWORD = ''
+file_line { 'local_settings_email_host_password':
+  ensure => present,
+  line   => "EMAIL_HOST_PASSWORD = 'SuperSecret'",
+  path   => "$szGraphiteLocalSettingFile",
+  require => Package[ 'graphite-web' ],
 }
 
 
 
+
+
+
+# See also: https://github.com/miguno/puppet-graphite/blob/master/manifests/web/install.pp
+# sudo python /usr/lib/python2.7/site-packages/graphite/manage.py syncdb
+# sudo chown apache:apache /var/lib/graphite-web/graphite.db
+
+service { 'carbon-aggregator':
+  ensure => running,
+  enable => true,
+  require => Package[ 'python-carbon' ],
+}
+
+service { 'carbon-cache':
+  ensure => running,
+  enable => true,
+  require => Package[ 'python-carbon' ],
+}
+
+file { '/etc/httpd/conf.d/graphite-web.conf':
+  ensure => present,
+  source => '/vagrant/graphite-web.conf',
+  require => Package[ 'graphite-web' ],
+  notify  => Service[ 'httpd' ],
+}
+
+
+service { 'httpd':
+  ensure => running,
+  enable => true,
+}
