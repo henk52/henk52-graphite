@@ -1,9 +1,17 @@
 # 
+# operatingsystem: Ubuntu / 
+# osfamily: Debian /
+if ( $osfamily == 'Debian' ) {
+  $szCarbonPkg = 'graphite-carbon'
+} else {
+  $szCarbonPkg = 'python-carbon'
+}
+
 package { 'graphite-web':
   ensure => present,
 }
 
-package { 'python-carbon':
+package { "$szCarbonPkg":
   ensure => present,
 }
 
