@@ -3,8 +3,18 @@
 # osfamily: Debian /
 if ( $osfamily == 'Debian' ) {
   $szCarbonPkg = 'graphite-carbon'
+  $szGraphiteWebCfgDir = '/etc/graphite'
+  $szWebConfDir = '/etc/apache2/conf-available'
+  $szPathToManagePy = '/usr/lib/python2.7/dist-packages/graphite'
+  $szPathToGraphiteDb = '/var/lib/graphite/graphite.db'
+  $szHttpdServiceName = 'apache2'
 } else {
   $szCarbonPkg = 'python-carbon'
+  $szGraphiteWebCfgDir = '/etc/graphite-web'
+  $szWebConfDir = '/etc/httpd/conf.d'
+  $szPathToManagePy = '/usr/lib/python2.7/site-packages/graphite'
+  $szPathToGraphiteDb = '/var/lib/graphite-web/graphite.db'
+  $szHttpdServiceName = 'httpd'
 }
 
 package { 'graphite-web':
@@ -24,7 +34,7 @@ package { 'python-whisper':
 
 # This is the file that should be edited.
 # /etc/graphite-web/local_settings.py
-$szGraphiteLocalSettingFile = '/etc/graphite-web/local_settings.py'
+$szGraphiteLocalSettingFile = "$szGraphiteWebCfgDir/local_settings.py"
 
 #SECRET_KEY = 'UNSAFE_DEFAULT'
 file_line { 'local_settings_secret_key':
@@ -56,7 +66,7 @@ file_line { 'local_settings_email_host_password':
 file { '/etc/carbon/storage-schemas.conf':
   ensure => present,
   content => "# from henk52-graphite.\n[performance_date]\npattern=.*\nretentions = 5s:7d,1m:30d,15m:1y",
-  require => Package[ 'python-carbon' ],
+  require => Package[ "$szCarbonPkg" ],
 }
 
 
@@ -65,37 +75,46 @@ file { '/etc/carbon/storage-schemas.conf':
 # sudo python /usr/lib/python2.7/site-packages/graphite/manage.py syncdb
 # sudo chown apache:apache /var/lib/graphite-web/graphite.db
 
-service { 'carbon-aggregator':
-  ensure => running,
-  enable => true,
-  require => File['/etc/carbon/storage-schemas.conf'],
-#  require => Package[ 'python-carbon' ],
+# it seems the Ubuntu does not have this.
+if ( $operatingsystem != "Ubuntu" ) {
+  service { 'carbon-aggregator':
+    ensure => running,
+    enable => true,
+    require => File['/etc/carbon/storage-schemas.conf'],
+  #  require => Package[ "$szCarbonPkg" ],
+  }
 }
 
 service { 'carbon-cache':
   ensure => running,
   enable => true,
   require => File['/etc/carbon/storage-schemas.conf'],
-#  require => Package[ 'python-carbon' ],
+#  require => Package[ "$szCarbonPkg" ],
 }
 
-file { '/etc/httpd/conf.d/graphite-web.conf':
+file { "$szWebConfDir/graphite-web.conf":
   ensure => present,
   source => '/vagrant/graphite-web.conf',
   require => Package[ 'graphite-web' ],
-  notify  => Service[ 'httpd' ],
+  notify  => Service[ "$szHttpdServiceName" ],
+}
+
+if ( $operatingsystem != "Ubuntu" ) {
+  $arDjangoDependServiceList = ['carbon-cache','carbon-aggregator']
+} else {
+  $arDjangoDependServiceList = ['carbon-cache']
 }
 
 # /var/lib/graphite-web/graphite.db
 exec { 'sync_django_db':
-  command => 'python /usr/lib/python2.7/site-packages/graphite/manage.py syncdb --noinput',
+  command => "python $szPathToManagePy/manage.py syncdb --noinput",
   path    => '/usr/bin',  
-  creates => '/var/lib/graphite-web/graphite.db',
+  creates => "$szPathToGraphiteDb",
   user    => 'apache',
   require => [ 
                File_line['local_settings_secret_key','local_settings_email_host_user','local_settings_email_host_password'],
                Package['graphite-web'],
-               Service['carbon-cache','carbon-aggregator'],
+               Service["$arDjangoDependServiceList"],
              ],
 }
 
@@ -110,9 +129,23 @@ exec { 'sync_django_db':
 #}
 
 #
-service { 'httpd':
-  ensure => running,
-  enable => true,
-  require => Exec['sync_django_db'],
+if ( $operatingsystem == "Ubuntu" ) {
+  package { 'apache2':
+    ensure => present,
+  }
+  service { 'apache2':
+    ensure => running,
+    enable => true,
+    require => [
+                 Exec['sync_django_db'],
+                 Package['apache2'],
+               ],
+  }
+} else {
+  service { "$szHttpdServiceName":
+    ensure => running,
+    enable => true,
+    require => Exec['sync_django_db'],
 #  require => [ Exec['sync_django_db'], File['/var/lib/graphite-web/index'] ],
+  }
 }
