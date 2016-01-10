@@ -130,15 +130,38 @@ exec { 'sync_django_db':
 
 #
 if ( $operatingsystem == "Ubuntu" ) {
+  # See https://www.digitalocean.com/community/tutorials/how-to-install-and-use-graphite-on-an-ubuntu-14-04-server
   package { 'apache2':
     ensure => present,
+  }
+  package { 'libapache2-mod-wsgi':
+    ensure => present,
+  }
+  # TODO sudo a2dissite 000-default
+  file { '/etc/apache2/sites-enabled/000-default.conf':
+    ensure => absent,
+    require => Package['apache2'],
+    notify  => Service['apache2'],
+  }
+
+  file { '/etc/apache2/sites-available/apache2-graphite.conf':
+    ensure => present,
+    source => '/usr/share/graphite-web/apache2-graphite.conf',
+    require => Package['apache2'],
+  }
+  # sudo a2ensite apache2-graphite
+  file { '/etc/apache2/sites-enabled/apache2-graphite.conf':
+    ensure => link,
+    target => '../sites-available/apache2-graphite.conf',
+    require => [Package['apache2'],File['/etc/apache2/sites-available/apache2-graphite.conf']],
+    notify  => Service['apache2'],
   }
   service { 'apache2':
     ensure => running,
     enable => true,
     require => [
                  Exec['sync_django_db'],
-                 Package['apache2'],
+                 Package['apache2','libapache2-mod-wsgi'],
                ],
   }
 } else {
