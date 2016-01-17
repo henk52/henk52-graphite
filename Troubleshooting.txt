@@ -17,3 +17,8 @@
 
 
  IntegrityError: UNIQUE constraint failed: auth_user.username
+
+
+#### OperationalError: unable to open database file ####
+ cp ./graphite.old/webapp/graphite/local_settings.py ./graphite/webapp/graphite/local_settings.py
+
