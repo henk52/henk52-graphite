@@ -16,3 +16,8 @@ sudo tail /var/log/httpd/graphite-web-error.log
 
 python /usr/share/graphite/graphite-web.wsgi
 Is this missing: /var/lib/graphite-web/index
+
+
+Where to look for troubleshooting information:
+/opt/graphite/storage/error.log
+/opt/graphite/storage/log/webapp/exception.log

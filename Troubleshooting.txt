@@ -22,3 +22,7 @@
 #### OperationalError: unable to open database file ####
  cp ./graphite.old/webapp/graphite/local_settings.py ./graphite/webapp/graphite/local_settings.py
 
+#### OperationalError: unable to open database file ####
+  Make sure /opt/graphite/storage is writable by apache
+  http://stackoverflow.com/questions/3280489/django-is-unable-to-open-database-file
+sqlite3/base.py "OperationalError: unable to open database file"

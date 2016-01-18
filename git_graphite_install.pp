@@ -24,14 +24,19 @@ file { '/opt/graphite/conf/graphite.wsgi':
   source => '/opt/graphite/conf/graphite.wsgi.example',
 }
 
+# Make this dependen on installing the graphite-web git
+file { '/opt/graphite/storage':
+  ensure => directory,
+  owner  => 'apache',
+}
 file { '/opt/graphite/storage/log':
   ensure => directory,
   owner  => 'apache',
 }
 file { '/opt/graphite/storage/log/webapp':
   ensure => directory,
-  require => File['/opt/graphite/storage/log'],
   owner  => 'apache',
+  require => File['/opt/graphite/storage/log'],
 }
 
 
