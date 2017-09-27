@@ -1,3 +1,5 @@
+class graphite {
+  include stdlib
 # 
 # operatingsystem: Ubuntu / 
 # osfamily: Debian /
@@ -8,6 +10,7 @@ if ( $osfamily == 'Debian' ) {
   $szPathToManagePy = '/usr/lib/python2.7/dist-packages/graphite'
   $szPathToGraphiteDb = '/var/lib/graphite/graphite.db'
   $szHttpdServiceName = 'apache2'
+  $szHttpdPackageName = 'apache2'
 } else {
   $szCarbonPkg = 'python-carbon'
   $szGraphiteWebCfgDir = '/etc/graphite-web'
@@ -15,6 +18,7 @@ if ( $osfamily == 'Debian' ) {
   $szPathToManagePy = '/usr/lib/python2.7/site-packages/graphite'
   $szPathToGraphiteDb = '/var/lib/graphite-web/graphite.db'
   $szHttpdServiceName = 'httpd'
+  $szHttpdPackageName = 'httpd'
 }
 
 package { 'graphite-web':
@@ -71,16 +75,24 @@ file { '/etc/carbon/storage-schemas.conf':
 
 
 
+
 # See also: https://github.com/miguno/puppet-graphite/blob/master/manifests/web/install.pp
 # sudo python /usr/lib/python2.7/site-packages/graphite/manage.py syncdb
 # sudo chown apache:apache /var/lib/graphite-web/graphite.db
 
 # it seems the Ubuntu does not have this.
 if ( $operatingsystem != "Ubuntu" ) {
+  file { '/etc/carbon/aggregation-rules.conf':
+    ensure => present,
+    source => '/usr/share/doc/python2-carbon/conf/aggregation-rules.conf.example',
+    require => Package[ "$szCarbonPkg" ],
+    notify  => Service['carbon-aggregator'],
+  }
+
   service { 'carbon-aggregator':
     ensure => running,
     enable => true,
-    require => File['/etc/carbon/storage-schemas.conf'],
+    require => File['/etc/carbon/aggregation-rules.conf'],
   #  require => Package[ "$szCarbonPkg" ],
   }
 }
@@ -94,7 +106,7 @@ service { 'carbon-cache':
 
 file { "$szWebConfDir/graphite-web.conf":
   ensure => present,
-  source => '/vagrant/graphite-web.conf',
+  source => '/etc/puppet/modules/graphite/graphite-web.conf',
   require => Package[ 'graphite-web' ],
   notify  => Service[ "$szHttpdServiceName" ],
 }
@@ -105,18 +117,7 @@ if ( $operatingsystem != "Ubuntu" ) {
   $arDjangoDependServiceList = ['carbon-cache']
 }
 
-# /var/lib/graphite-web/graphite.db
-exec { 'sync_django_db':
-  command => "python $szPathToManagePy/manage.py syncdb --noinput",
-  path    => '/usr/bin',  
-  creates => "$szPathToGraphiteDb",
-  user    => 'apache',
-  require => [ 
-               File_line['local_settings_secret_key','local_settings_email_host_user','local_settings_email_host_password'],
-               Package['graphite-web'],
-               Service["$arDjangoDependServiceList"],
-             ],
-}
+
 
 #file { '/var/lib/graphite-web/index':
 
@@ -128,12 +129,30 @@ exec { 'sync_django_db':
 #  require => Exec['sync_django_db'], 
 #}
 
+# /var/lib/graphite-web/graphite.db
+#  https://www.vultr.com/docs/how-to-install-and-configure-graphite-on-centos-7
+#    PYTHONPATH=/usr/share/graphite/webapp django-admin migrate --settings=graphite.settings
+exec { 'sync_django_db':
+  command => "PYTHONPATH=/usr/share/graphite/webapp django-admin migrate   --run-syncdb  --settings=graphite.settings; chown apache:apache $szPathToGraphiteDb",
+  path    => '/usr/bin',  
+  creates => "$szPathToGraphiteDb",
+  user    => 'apache',
+  require => [ 
+               File_line['local_settings_secret_key','local_settings_email_host_user','local_settings_email_host_password'],
+               Package['graphite-web'],
+#               Service["$arDjangoDependServiceList"],
+# This only works for RedHat family.
+               Service['carbon-cache','carbon-aggregator'],
+             ],
+}
+
+package { "$szHttpdPackageName":
+  ensure => present,
+}
+
 #
 if ( $operatingsystem == "Ubuntu" ) {
   # See https://www.digitalocean.com/community/tutorials/how-to-install-and-use-graphite-on-an-ubuntu-14-04-server
-  package { 'apache2':
-    ensure => present,
-  }
   package { 'libapache2-mod-wsgi':
     ensure => present,
   }
@@ -165,10 +184,21 @@ if ( $operatingsystem == "Ubuntu" ) {
                ],
   }
 } else {
+  file { '/etc/httpd/conf.d/welcome.conf':
+    ensure => present,
+    content => '# Disabled for graphite',
+    require => Package["$szHttpdPackageName"],
+    notify  => Service["$szHttpdServiceName"],
+  }
+
+  
   service { "$szHttpdServiceName":
     ensure => running,
     enable => true,
     require => Exec['sync_django_db'],
 #  require => [ Exec['sync_django_db'], File['/var/lib/graphite-web/index'] ],
   }
+}
+
+ # TODO maybe create /var/lib/graphite-web/index file, owned by apache.
 }
