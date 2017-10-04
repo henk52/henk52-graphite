@@ -133,8 +133,9 @@ if ( $operatingsystem != "Ubuntu" ) {
 #  https://www.vultr.com/docs/how-to-install-and-configure-graphite-on-centos-7
 #    PYTHONPATH=/usr/share/graphite/webapp django-admin migrate --settings=graphite.settings
 exec { 'sync_django_db':
-  command => "PYTHONPATH=/usr/share/graphite/webapp django-admin migrate   --run-syncdb  --settings=graphite.settings; chown apache:apache $szPathToGraphiteDb",
-  path    => '/usr/bin',  
+  command => "django-admin migrate   --run-syncdb  --settings=graphite.settings; chown apache:apache $szPathToGraphiteDb",
+  environment => ['PYTHONPATH=/usr/share/graphite/webapp'],
+  path    => ['/usr/bin','/bin'],
   creates => "$szPathToGraphiteDb",
   user    => 'apache',
   require => [ 

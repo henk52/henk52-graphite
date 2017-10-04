@@ -1,2 +1,7 @@
 package {'puppetlabs-stdlib': ensure => present }
-ln -s /usr/share/puppet/modules/stdlib /etc/puppet/modules/stdlib
+
+file { '/etc/puppet/modules/stdlib':
+  ensure => link,
+  target => '/usr/share/puppet/modules/stdlib',
+  require => Package['puppetlabs-stdlib'],
+}
