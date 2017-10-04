@@ -16,10 +16,10 @@ Installs graphite-web and carbon + whisper on Fedora 20.
 
 # Installation
 
-1. git clone https://github.com/henk52/henk52-graphite.git
-2. cd henk52-graphite
+1. git clone https://github.com/henk52/henk52-graphite.git graphite
+2. cd graphite
 3. sudo  puppet apply requirements.pp
-4. sudo puppet apply graphite_install.pp
+4. sudo puppet apply tests/init.pp
 
 now you can point your browser at :80 and see the graphite content.
 
