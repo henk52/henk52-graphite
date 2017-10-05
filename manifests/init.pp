@@ -75,8 +75,17 @@ file { '/etc/carbon/storage-schemas.conf':
 
 file_line { 'MAX_CREATES_PER_MINUTE':
   ensure => present,
-  line    => "MAX_CREATES_PER_MINUTE = 5000",
+  line    => "MAX_CREATES_PER_MINUTE = 8000",
   match   => "^MAX_CREATES_PER_MINUTE =*",
+  path    => '/etc/carbon/carbon.conf',
+  require => Package[ "$szCarbonPkg" ],
+  notify  => Service["carbon-cache"],
+}
+
+file_line { 'MAX_UPDATES_PER_SECOND':
+  ensure => present,
+  line    => "MAX_UPDATES_PER_SECOND = 45000",
+  match   => "^MAX_UPDATES_PER_SECOND =*",
   path    => '/etc/carbon/carbon.conf',
   require => Package[ "$szCarbonPkg" ],
   notify  => Service["carbon-cache"],
