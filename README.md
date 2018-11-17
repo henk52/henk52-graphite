@@ -19,6 +19,7 @@ Installs graphite-web and carbon + whisper on Fedora 20.
 1. git clone https://github.com/henk52/henk52-graphite.git graphite
 2. cd graphite
 3. sudo  puppet apply requirements.pp
+  * or do: puppet module install puppetlabs-stdlib
 4. sudo puppet apply tests/init.pp
 
 now you can point your browser at :80 and see the graphite content.
