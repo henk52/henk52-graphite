@@ -26,3 +26,101 @@
   Make sure /opt/graphite/storage is writable by apache
   http://stackoverflow.com/questions/3280489/django-is-unable-to-open-database-file
 sqlite3/base.py "OperationalError: unable to open database file"
+
+
+#### urlpatterns = patterns('',
+See:
+* https://github.com/django-oscar/django-oscar-paypal/issues/157
+* https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=840516
+
+Fix: vi /usr/lib/python2.7/dist-packages/graphite/urls.py
+  replace with: urlpatterns = []
+
+ File "/usr/lib/python2.7/dist-packages/graphite/urls.py", line 29, in <module>
+    urlpatterns = patterns('',
+
+---
+Traceback (most recent call last):
+  File "/usr/bin/django-admin", line 21, in <module>
+    management.execute_from_command_line()
+  File "/usr/lib/python2.7/dist-packages/django/core/management/__init__.py", line 367, in execute_from_command_line
+    utility.execute()
+  File "/usr/lib/python2.7/dist-packages/django/core/management/__init__.py", line 359, in execute
+    self.fetch_command(subcommand).run_from_argv(self.argv)
+  File "/usr/lib/python2.7/dist-packages/django/core/management/base.py", line 294, in run_from_argv
+    self.execute(*args, **cmd_options)
+  File "/usr/lib/python2.7/dist-packages/django/core/management/base.py", line 342, in execute
+    self.check()
+  File "/usr/lib/python2.7/dist-packages/django/core/management/base.py", line 374, in check
+    include_deployment_checks=include_deployment_checks,
+  File "/usr/lib/python2.7/dist-packages/django/core/management/commands/migrate.py", line 62, in _run_checks
+    issues.extend(super(Command, self)._run_checks(**kwargs))
+  File "/usr/lib/python2.7/dist-packages/django/core/management/base.py", line 361, in _run_checks
+    return checks.run_checks(**kwargs)
+  File "/usr/lib/python2.7/dist-packages/django/core/checks/registry.py", line 81, in run_checks
+    new_errors = check(app_configs=app_configs)
+  File "/usr/lib/python2.7/dist-packages/django/core/checks/urls.py", line 14, in check_url_config
+    return check_resolver(resolver)
+  File "/usr/lib/python2.7/dist-packages/django/core/checks/urls.py", line 24, in check_resolver
+    for pattern in resolver.url_patterns:
+  File "/usr/lib/python2.7/dist-packages/django/utils/functional.py", line 35, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+  File "/usr/lib/python2.7/dist-packages/django/urls/resolvers.py", line 315, in url_patterns
+    patterns = getattr(self.urlconf_module, "urlpatterns", self.urlconf_module)
+  File "/usr/lib/python2.7/dist-packages/django/utils/functional.py", line 35, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+  File "/usr/lib/python2.7/dist-packages/django/urls/resolvers.py", line 308, in urlconf_module
+    return import_module(self.urlconf_name)
+  File "/usr/lib/python2.7/importlib/__init__.py", line 37, in import_module
+    __import__(name)
+  File "/usr/lib/python2.7/dist-packages/graphite/urls.py", line 29, in <module>
+    urlpatterns = patterns('',
+NameError: name 'patterns' is not defined
+---
+
+
+
+#### django.db.utils.ProgrammingError: relation "auth_user" does not exist
+
+See: https://bugs.launchpad.net/ubuntu/+source/graphite-web/+bug/1648828
+
+Fix:  python /usr/lib/python2.7/dist-packages/graphite/manage.py migrate 
+---
+django-admin migrate   --run-syncdb  --settings=graphite.settings
+Operations to perform:
+  Synchronize unmigrated apps: account, browser, cli, composer, dashboard, events, metrics, render, url_shortener, whitelist
+  Apply all migrations: admin, auth, contenttypes, sessions, tagging
+Synchronizing apps without migrations:
+  Creating tables...
+    Creating table account_profile
+    Creating table account_variable
+    Creating table account_view
+    Creating table account_window
+    Creating table account_mygraph
+    Creating table dashboard_dashboard
+    Creating table events_event
+    Creating table url_shortener_link
+    Running deferred SQL...
+Traceback (most recent call last):
+  File "/usr/bin/django-admin", line 21, in <module>
+    management.execute_from_command_line()
+  File "/usr/lib/python2.7/dist-packages/django/core/management/__init__.py", line 367, in execute_from_command_line
+    utility.execute()
+  File "/usr/lib/python2.7/dist-packages/django/core/management/__init__.py", line 359, in execute
+    self.fetch_command(subcommand).run_from_argv(self.argv)
+  File "/usr/lib/python2.7/dist-packages/django/core/management/base.py", line 294, in run_from_argv
+    self.execute(*args, **cmd_options)
+  File "/usr/lib/python2.7/dist-packages/django/core/management/base.py", line 345, in execute
+    output = self.handle(*args, **options)
+  File "/usr/lib/python2.7/dist-packages/django/core/management/commands/migrate.py", line 173, in handle
+    self.sync_apps(connection, executor.loader.unmigrated_apps)
+  File "/usr/lib/python2.7/dist-packages/django/core/management/commands/migrate.py", line 316, in sync_apps
+    cursor.execute(statement)
+  File "/usr/lib/python2.7/dist-packages/django/db/backends/utils.py", line 64, in execute
+    return self.cursor.execute(sql, params)
+  File "/usr/lib/python2.7/dist-packages/django/db/utils.py", line 94, in __exit__
+    six.reraise(dj_exc_type, dj_exc_value, traceback)
+  File "/usr/lib/python2.7/dist-packages/django/db/backends/utils.py", line 62, in execute
+    return self.cursor.execute(sql)
+django.db.utils.ProgrammingError: relation "auth_user" does not exist
+---

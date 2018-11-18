@@ -99,10 +99,25 @@ file_line { 'MAX_UPDATES_PER_SECOND':
 # sudo chown apache:apache /var/lib/graphite-web/graphite.db
 
 # it seems the Ubuntu does not have this.
-if ( $operatingsystem != "Ubuntu" ) {
+if ( $osfamily == 'Debian' ) {
   file { '/etc/carbon/aggregation-rules.conf':
     ensure => present,
+    source => '/usr/share/doc/graphite-carbon/examples/aggregation-rules.conf.example',
+    require => Package[ "$szCarbonPkg" ],
+#    notify  => Service['carbon-aggregator'],
+  }
+
+# for raspberrypi this fails.
+#  service { 'carbon-aggregator':
+#    ensure => running,
+#    enable => true,
+#    require => File['/etc/carbon/aggregation-rules.conf'],
+#  #  require => Package[ "$szCarbonPkg" ],
+#  }
+} else {
+  file { '/etc/carbon/aggregation-rules.conf':
     source => '/usr/share/doc/python2-carbon/conf/aggregation-rules.conf.example',
+    ensure => present,
     require => Package[ "$szCarbonPkg" ],
     notify  => Service['carbon-aggregator'],
   }
@@ -124,15 +139,15 @@ service { 'carbon-cache':
 
 file { "$szWebConfDir/graphite-web.conf":
   ensure => present,
-  source => '/etc/puppet/modules/graphite/graphite-web.conf',
+  source => '/etc/puppet/code/modules/graphite/graphite-web.conf',
   require => Package[ 'graphite-web' ],
   notify  => Service[ "$szHttpdServiceName" ],
 }
 
-if ( $operatingsystem != "Ubuntu" ) {
+if (  $osfamily != 'Debian' ) {
   $arDjangoDependServiceList = ['carbon-cache','carbon-aggregator']
 } else {
-  $arDjangoDependServiceList = ['carbon-cache']
+  $arDjangoDependServiceList = 'carbon-cache'
 }
 
 
@@ -150,18 +165,20 @@ if ( $operatingsystem != "Ubuntu" ) {
 # /var/lib/graphite-web/graphite.db
 #  https://www.vultr.com/docs/how-to-install-and-configure-graphite-on-centos-7
 #    PYTHONPATH=/usr/share/graphite/webapp django-admin migrate --settings=graphite.settings
+#  command => "django-admin migrate   --run-syncdb  --settings=graphite.settings; chown apache:apache $szPathToGraphiteDb",
+#  creates => "$szPathToGraphiteDb",
 exec { 'sync_django_db':
-  command => "django-admin migrate   --run-syncdb  --settings=graphite.settings; chown apache:apache $szPathToGraphiteDb",
+  command => "django-admin migrate   --run-syncdb  --settings=graphite.settings",
   environment => ['PYTHONPATH=/usr/share/graphite/webapp'],
   path    => ['/usr/bin','/bin'],
-  creates => "$szPathToGraphiteDb",
+  creates => '/home',
   user    => 'apache',
   require => [ 
                File_line['local_settings_secret_key','local_settings_email_host_user','local_settings_email_host_password'],
                Package['graphite-web'],
-#               Service["$arDjangoDependServiceList"],
+               Service["$arDjangoDependServiceList"],
 # This only works for RedHat family.
-               Service['carbon-cache','carbon-aggregator'],
+#               Service['carbon-cache','carbon-aggregator'],
              ],
 }
 
@@ -170,7 +187,7 @@ package { "$szHttpdPackageName":
 }
 
 #
-if ( $operatingsystem == "Ubuntu" ) {
+if ( $osfamily == 'Debian' ) {
   # See https://www.digitalocean.com/community/tutorials/how-to-install-and-use-graphite-on-an-ubuntu-14-04-server
   package { 'libapache2-mod-wsgi':
     ensure => present,
